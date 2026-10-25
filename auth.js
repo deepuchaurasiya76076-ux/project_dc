@@ -1,126 +1,89 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const User = require("../models/user.js");
+ async function signup() {
 
-const router = express.Router();
+    const name =
+        document.getElementById("name").value;
 
-// SIGNUP
-router.post("/signup", async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
+    const email =
+        document.getElementById("signupEmail").value;
 
-        if (!name || !email || !password) {
-            return res.status(400).json({
-                message: "All fields are required"
-            });
-        }
-        // Name validation
-    if (name.trim().length < 2) {
-    return res.status(400).json({
-        message: "Name must be at least 2 characters"
-    });
-    }
+    const password =
+        document.getElementById("signupPassword").value;
 
-// Password validation  
-    if (password.length < 8) {
-    return res.status(400).json({
-        message: "Password must be at least 8 characters"
-    });
-   }
 
-// Email validation
-    const emailRegex =
-     /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const response = await fetch("/api/auth/signup", {
 
-    if (!emailRegex.test(email.trim())) {
-    return res.status(400).json({
-        message: "Please enter a valid email"
-    });
-    }
+        method: "POST",
 
-        const existingUser = await User.findOne({ email });
+        headers: {
+            "Content-Type": "application/json"
+        },
 
-        if (existingUser) {
-            return res.status(400).json({
-                message: "Email already registered"
-            });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const user = await User.create({
+        body: JSON.stringify({
             name,
             email,
-            password: hashedPassword
-        });
-
-        res.status(201).json({
-            message: "Signup successful",
-            userId: user._id
-        });
-
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            message: "Server error"
-        });
-    }
-});
+            password
+        })
+    });
 
 
-// LOGIN
-router.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
+    const data = await response.json();
 
-        const user = await User.findOne({ email });
+    document.getElementById("message")
+        .innerText = data.message;
+}
 
-        if (!user) {
-            return res.status(401).json({
-                message: "Invalid email or password"
-            });
-        }
 
-        const passwordMatch = await bcrypt.compare(
-            password,
-            user.password
+async function login() {
+
+    const email =
+        document.getElementById("email").value;
+
+    const password =
+        document.getElementById("password").value;
+
+
+    const response = await fetch("/api/auth/login", {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            email,
+            password
+        })
+    });
+
+
+    const data = await response.json();
+
+
+    if (data.token) {
+
+        localStorage.setItem(
+            "token",
+            data.token
         );
 
-        if (!passwordMatch) {
-            return res.status(401).json({
-                message: "Invalid email or password"
-            });
-        }
-
-        const token = jwt.sign(
-            {
-                userId: user._id
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "7d"
-            }
+        localStorage.setItem(
+            "user",
+            JSON.stringify(data.user)
         );
 
-        res.json({
-            message: "Login successful",
-            token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email
-            }
-        });
+        window.location.href = "/index.html";
 
-    } catch (error) {
-        console.error(error);
+    } else {
 
-        res.status(500).json({
-            message: "Server error"
-        });
+        document.getElementById("message")
+            .innerText = data.message;
     }
-});
+}
 
-module.exports = router;
+
+function showSignup() {
+
+    document.getElementById("signupBox")
+        .style.display = "block";
+}
